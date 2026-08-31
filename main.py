@@ -10,14 +10,14 @@ import sqlite3  # Подключаем встроенную базу данны�
 BOT_TOKEN = "8779703464:AAEH2SBc28Rc7v4iX5MniJ2dz1Rg3IK5qWI"  # Срочно поменяй в @BotFather!
 bot = telebot.TeleBot(BOT_TOKEN)
 
-#balances = {}
-#bonus_cooldowns = {}
-#statuses = {}
-#farm_cooldowns = {}
-#user_businesses = {}
-#last_business_collect = {}
-#user_investments = {}
-#last_invest_collect = {}
+balances = {}
+bonus_cooldowns = {}
+statuses = {}
+farm_cooldowns = {}
+user_businesses = {}
+last_business_collect = {}
+user_investments = {}
+last_invest_collect = {}
 
 # Функция, которая создает файл базы данных и таблицу внутри нее
 def init_db():
@@ -492,48 +492,6 @@ def invest_coins(message):
 @bot.message_handler(content_types=['text'])
 def echo_all(message: types.Message):
     bot.send_message(message.chat.id, "Неизвестная команда. Все доступные команды /commands")
-
-
-def save_data():
-    with open("balances.json", "w", encoding="utf-8") as f:
-        json.dump(balances, f, ensure_ascii=False, indent=4)
-    with open("statuses.json", "w", encoding="utf-8") as f:
-        json.dump(statuses, f, ensure_ascii=False, indent=4)
-    with open("user_businesses.json", "w", encoding="utf-8") as f:
-        json.dump(user_businesses, f, ensure_ascii=False, indent=4)
-    with open("last_business_collect.json", "w", encoding="utf-8") as f:
-        json.dump(last_business_collect, f, ensure_ascii=False, indent=4)
-    with open("farm_cooldowns.json", "w", encoding="utf-8") as f:
-        json.dump(farm_cooldowns, f, ensure_ascii=False, indent=4)
-    with open("user_investments.json", "w", encoding="utf-8") as f:
-        json.dump(user_investments, f, ensure_ascii=False, indent=4)
-    with open("last_invest_collect.json", "w", encoding="utf-8") as f:
-        json.dump(last_invest_collect, f, ensure_ascii=False, indent=4)
-    print("Данные успешно сохранены в файлы!")
-
-
-def load_data():
-    global balances, statuses, user_businesses, last_business_collect, farm_cooldowns, user_investments, last_invest_collect
-    try:
-        with open("balances.json", "r", encoding="utf-8") as f:
-            balances = {int(k): v for k, v in json.load(f).items()}
-        with open("statuses.json", "r", encoding="utf-8") as f:
-            statuses = {int(k): v for k, v in json.load(f).items()}
-        with open("user_businesses.json", "r", encoding="utf-8") as f:
-            user_businesses = {int(k): v for k, v in json.load(f).items()}
-        with open("last_business_collect.json", "r", encoding="utf-8") as f:
-            last_business_collect = {int(k): v for k, v in json.load(f).items()}
-        with open("farm_cooldowns.json", "r", encoding="utf-8") as f:
-            farm_cooldowns = {int(k): v for k, v in json.load(f).items()}
-        with open("user_investments.json", "r", encoding="utf-8") as f:
-            user_investments = {int(k): v for k, v in json.load(f).items()}
-        with open("last_invest_collect.json", "r", encoding="utf-8") as f:
-            last_invest_collect = {int(k): v for k, v in json.load(f).items()}
-
-        print("Данные успешно загружены из файлов!")
-    except FileNotFoundError:
-        print("Файлы сохранений еще не созданы. Начинаем с нуля.")
-
 
 if __name__ == "__main__":
     print("Бот успешно запущен...")
