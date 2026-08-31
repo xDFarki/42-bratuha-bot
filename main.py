@@ -490,7 +490,7 @@ def invest_coins(message):
 
 
 @bot.message_handler(content_types=['text'])
-def echo_all(message):
+def echo_all(message: types.Message):
     bot.send_message(message.chat.id, "Неизвестная команда. Все доступные команды /commands")
 
 
