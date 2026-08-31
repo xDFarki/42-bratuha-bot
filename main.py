@@ -172,7 +172,7 @@ def farm_coins(message):
             minutes_left = time_left // 60
             seconds_left = time_left % 60
             bot.send_message(message.chat.id,
-                             f"Тормози. Фармить можно будет только через {minutes_left} мин. {seconds_left} сек. ⏳")
+            f"Тормози. Фармить можно будет только через {minutes_left} мин. {seconds_left} сек. ⏳")
             return
 
     if user_status == "🤡Лох🤡":
@@ -269,11 +269,9 @@ def update_passive_income(user_id):
     current_time = time.time()
     business = user_businesses.get(user_id, None)
 
-    # Если бизнеса вообще нет — ничего не делаем
     if not business:
         return 0
 
-    # Определяем доходность в минуту в зависимости от бизнеса
     if business == "🌯 Шаурмечная":
         income_per_minute = 5
     elif business == "🎮 Компьютерный клуб":
@@ -283,34 +281,23 @@ def update_passive_income(user_id):
     else:
         return 0
 
-    # Берем время последнего сбора. Если его нет — ставим текущее
     last_time = last_business_collect.get(user_id, current_time)
-
-    # 1. Считаем, сколько секунд прошло с последнего сбора
     seconds_passed = current_time - last_time
-
-    # 2. Переводим секунды в 5-минутные блоки (5 минут = 300 секунд)
-    # Оператор // 300 покажет, сколько полных раз по 5 минут прошло
-    blocks_passed = int(seconds_passed // 300)
+    blocks_passed = int(seconds_passed // 300)  # 5 минут
 
     if blocks_passed > 0:
-        # 3. Считаем чистый доход.
-        # Так как income_per_minute — это доход за 1 минуту, умножаем его на 5 (за один блок)
         income_per_block = income_per_minute * 5
         total_income = blocks_passed * income_per_block
 
-        # Начисляем коины на баланс
         if user_id not in balances:
             balances[user_id] = 0
         balances[user_id] += total_income
-
-        # 4. Сдвигаем время вперед ровно на выплаченные 5-минутные блоки в секундах
-        # Каждый выплаченный блок — это ровно 300 секунд
         last_business_collect[user_id] = last_time + (blocks_passed * 300)
 
         return total_income
 
     return 0
+
 
 
 @bot.message_handler(commands=['buy_business'])
@@ -462,11 +449,11 @@ def invest_coins(message):
     args = message.text.split()
 
     if len(args) < 2:
-        bot.send_message(message.chat.id, "Введи сумму для инвестиций! Пример: /invest 50")
+        bot.send_message(message.chat.id, "Брат, введи сумму для инвестиций! Пример: /invest 100")
         return
 
     if not args[1].isdigit():
-        bot.send_message(message.chat.id, "Сумма должна быть числом! Пример: /invest 50")
+        bot.send_message(message.chat.id, "Сумма вклада должна быть числом, братуха!")
         return
 
     amount = int(args[1])
@@ -476,16 +463,16 @@ def invest_coins(message):
         return
 
     if current_balance < amount:
-        bot.send_message(message.chat.id, f"У тебя нет столько коинов для вклада! Твой баланс: {current_balance}🪙")
+        bot.send_message(message.chat.id, f"У тебя нет столько коинов для вклада. Твой баланс: {current_balance}🪙")
         return
 
-    update_investments_income(user_id, message.chat.id)
-
+    # Списываем и кладем на вклад
     balances[user_id] -= amount
     user_investments[user_id] = user_investments.get(user_id, 0) + amount
     last_invest_collect[user_id] = time.time()
 
-    bot.send_message(message.chat.id, f"Молодец, ты инвестировал {amount} коинов. Теперь они работают на тебя под +10% каждые 10 минут. Проверить вклад можно в /balance")
+    bot.send_message(message.chat.id, f"Молодец, ты инвестировал {amount} коинов. Теперь теперь тебе капают +10% каждые 10 минут. Проверить вклад можно в /balance")
+
 
 
 
