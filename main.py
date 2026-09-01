@@ -156,58 +156,42 @@ def send_commands(message):
 @bot.message_handler(commands=['farm'])
 def farm_coins(message):
     user_id = message.from_user.id
-    user_status = statuses.get(user_id, "🤡Лох🤡")
+    data = get_user_data(user_id)  # Читаем из базы вместо словаря
+    user_status = data["status"]
     current_time = time.time()
     cooldown_time = 3600
 
-    if user_id not in balances:
-        balances[user_id] = 0
-
-        # Проверка КД
-    if user_id in farm_cooldowns:
-        last_time = farm_cooldowns[user_id]
-        if current_time - last_time < cooldown_time:
-            time_left = int(cooldown_time - (current_time - last_time))
-            # Переводим секунды в минуты для красоты
-            minutes_left = time_left // 60
-            seconds_left = time_left % 60
-            bot.send_message(message.chat.id,
-            f"Тормози. Фармить можно будет только через {minutes_left} мин. {seconds_left} сек. ⏳")
-            return
+    last_time = data["farm_cooldown"]
+    if current_time - last_time < cooldown_time:
+        time_left = int(cooldown_time - (current_time - last_time))
+        minutes_left = time_left // 60
+        seconds_left = time_left % 60
+        bot.send_message(message.chat.id, f"Тормози. Фармить можно будет только через {minutes_left} мин. {seconds_left} сек. ⏳")
+        return
 
     if user_status == "🤡Лох🤡":
         rndcoins = random.randint(10, 25)
-        balances[user_id] += rndcoins
-        bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {balances[user_id]}🪙")
     elif user_status == "🤓Нормис🤓":
         rndcoins = random.randint(40, 80)
-        balances[user_id] += rndcoins
-        bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {balances[user_id]}🪙")
     elif user_status == "😎Пацан😎":
         rndcoins = random.randint(120, 200)
-        balances[user_id] += rndcoins
-        bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {balances[user_id]}🪙")
     elif user_status == "🔰Элита🔰":
         rndcoins = random.randint(350, 550)
-        balances[user_id] += rndcoins
-        bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {balances[user_id]}🪙")
     elif user_status == "💯Брат💯":
         rndcoins = random.randint(900, 1300)
-        balances[user_id] += rndcoins
-        bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {balances[user_id]}🪙")
     elif user_status == "✊42 Брат✊":
         rndcoins = random.randint(2500, 3800)
-        balances[user_id] += rndcoins
-        bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {balances[user_id]}🪙")
     elif user_status == "⚜️Легенда⚜️":
         rndcoins = random.randint(6000, 9000)
-        balances[user_id] += rndcoins
-        bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {balances[user_id]}🪙")
     else:
-        print({user_id}, "не выдался статус!")
         return
 
-    farm_cooldowns[user_id] = current_time
+    # Сохраняем новый баланс и КД в базу данных
+    new_balance = data["balance"] + rndcoins
+    update_user_field(user_id, "balance", new_balance)
+    update_user_field(user_id, "farm_cooldown", current_time)
+
+    bot.send_message(message.chat.id, f"Ты заработал {rndcoins} коинов. Сейчас у тебя: {new_balance}🪙")
 
 
 
@@ -262,7 +246,7 @@ def check_balance(message):
 
     # Твой неизмененный текст вывода!
     bot.send_message(message.chat.id,
-                     f"На балансе: {current_balance} Братуха коинов💪\nИнвестировано: {invested_now}🪙\nТвой статус: {user_status}")
+                     f"На балансе: {current_balance} Братуха коинов🪙\nИнвестировано: {invested_now}💪\nТвой статус: {user_status}")
 
 
 def update_passive_income(user_id):
@@ -409,69 +393,57 @@ def send_shop(message):
 @bot.message_handler(commands=['casino'])
 def play_casino(message):
     user_id = message.from_user.id
-    current_balance = balances.get(user_id, 0)
+    data = get_user_data(user_id)  # Читаем из базы
+    current_balance = data["balance"]
 
     args = message.text.split()
-
-    if len(args) < 2:
+    if len(args) < 2 or not args[1].isdigit():
         bot.send_message(message.chat.id, "Введи сумму ставки! Пример: /casino 50")
         return
 
-    if not args[1].isdigit():
-        bot.send_message(message.chat.id, "Ставка введена неверно. Пример: /casino 50")
-        return
-
     bet = int(args[1])
-
-    if bet <= 0:
-        bot.send_message(message.chat.id, "Ставка должна быть больше нуля")
-        return
-
-    if current_balance < bet:
-        bot.send_message(message.chat.id, f"У тебя не хватает коинов. Твой баланс: {current_balance}🪙")
+    if bet <= 0 or current_balance < bet:
+        bot.send_message(message.chat.id, "Ставка неверна или мало коинов!")
         return
 
     result = random.choice(["win", "lose"])
 
     if result == "win":
-        balances[user_id] += bet
-        bot.send_message(message.chat.id, f"Повезло! Ты выиграл {bet} коинов. Сейчас у тебя: {balances[user_id]}🪙")
+        new_balance = current_balance + bet
+        bot.send_message(message.chat.id, f"Повезло! Ты выиграл {bet} коинов. Сейчас у тебя: {new_balance}🪙")
     else:
-        balances[user_id] -= bet
-        bot.send_message(message.chat.id, f"Не повезло! Ты слил {bet} коинов. Сейчас у тебя: {balances[user_id]}🪙")
+        new_balance = current_balance - bet
+        bot.send_message(message.chat.id, f"Не повезло! Ты слил {bet} коинов. Сейчас у тебя: {new_balance}🪙")
+
+    update_user_field(user_id, "balance", new_balance)  # Сохраняем в базу
 
 
 @bot.message_handler(commands=['invest'])
 def invest_coins(message):
     user_id = message.from_user.id
-    current_balance = balances.get(user_id, 0)
+    data = get_user_data(user_id)
+    current_balance = data["balance"]
 
     args = message.text.split()
-
-    if len(args) < 2:
-        bot.send_message(message.chat.id, "Брат, введи сумму для инвестиций! Пример: /invest 100")
-        return
-
-    if not args[1].isdigit():
-        bot.send_message(message.chat.id, "Сумма вклада должна быть числом, братуха!")
+    if len(args) < 2 or not args[1].isdigit():
+        bot.send_message(message.chat.id, "Брат, введи сумму для инвестиций!")
         return
 
     amount = int(args[1])
-
-    if amount <= 0:
-        bot.send_message(message.chat.id, "Сумма должна быть больше нуля!")
+    if amount <= 0 or current_balance < amount:
+        bot.send_message(message.chat.id, "Недостаточно коинов или сумма неверна!")
         return
 
-    if current_balance < amount:
-        bot.send_message(message.chat.id, f"У тебя нет столько коинов для вклада. Твой баланс: {current_balance}🪙")
-        return
+    new_balance = current_balance - amount
+    new_invested = data["invested_amount"] + amount
 
-    # Списываем и кладем на вклад
-    balances[user_id] -= amount
-    user_investments[user_id] = user_investments.get(user_id, 0) + amount
-    last_invest_collect[user_id] = time.time()
+    # Записываем в базу данных
+    update_user_field(user_id, "balance", new_balance)
+    update_user_field(user_id, "invested_amount", new_invested)
+    update_user_field(user_id, "last_invest_collect", time.time())
 
-    bot.send_message(message.chat.id, f"Молодец, ты инвестировал {amount} коинов. Теперь теперь тебе капают +10% каждые 10 минут. Проверить вклад можно в /balance")
+    bot.send_message(message.chat.id, f"Молодец, ты инвестировал {amount} коинов. Теперь тебе капают +10% каждые 10 минут. Проверить вклад можно в /balance")
+
 
 
 
